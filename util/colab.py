@@ -1,3 +1,8 @@
+import sys
+import torch
+import requests
+import subprocess
+
 # We will need pytorch3d. At the moment (2022-07-23) it's a bit complicated to install in colab:
 def install_pytorch_3d_from_prebuilt_wheel_if_needed():
     """
@@ -16,8 +21,6 @@ def install_pytorch_3d_from_prebuilt_wheel_if_needed():
 
     # we construct a version string that encodes:
     # Python version, torch's CUDA version, and torch version
-    import sys
-    import torch
     pyt_version_str=torch.__version__.split("+")[0].replace(".", "")
     version_str="".join([
         f"py3{sys.version_info.minor}_cu",
@@ -33,20 +36,23 @@ def install_pytorch_3d_from_prebuilt_wheel_if_needed():
     srg_filename = f"mit-srg-6s980-colab-wheels-{version_str}.tar.gz"
     srg_wheel_url = f"http://eu.schubert.io/{srg_filename}"
 
-    import requests
     fb_has_wheel = requests.head(fbai_wheel_url).ok
     srg_has_wheel = requests.head(srg_wheel_url).ok
 
     if fb_has_wheel or srg_has_wheel:
         print("Found a wheel. First, install some pytorch3d dependencies (fvcore, iopath) that aren't included in pre-built wheel:")
-        ! pip install --quiet fvcore iopath  # type: ignore
+        subprocess.call([sys.executable, '-m', 'pip', 'install', '--quiet', 'fvcore', 'iopath'])
+#        ! pip install --quiet fvcore iopath  # type: ignore
 
     if fb_has_wheel:
         print("Found FB AI wheel, installing…")
-        ! pip install --no-index --no-cache-dir pytorch3d -f {fbai_wheel_url}  # type: ignore
+        subprocess.call([sys.executable, '-m', 'pip', 'install', '--no-index', '--no-cache-dir', 'pytorch3d', '-f', fbai_wheel_url])
+#        ! pip install --no-index --no-cache-dir pytorch3d -f {fbai_wheel_url}  # type: ignore
     elif srg_has_wheel:
         print("Found only SRG wheel, installing...")
-        ! curl -L {srg_wheel_url} | tar xz  # type: ignore
-        ! pip install --no-index --find-links=./wheeldir pytorch3d  # type: ignore
+        subprocess.call(f'curl -L {srg_wheel_url} | tar xz'.split())
+        subprocess.call(f'{sys.executable} -m pip install --no-index --find-links=./wheeldir pytorch3d'.split())
+#        ! curl -L {srg_wheel_url} | tar xz  # type: ignore
+#        ! pip install --no-index --find-links=./wheeldir pytorch3d  # type: ignore
     else:
         raise RuntimeError("Can't find any pre-compiled pytorch3D wheel. :/")
