@@ -13,7 +13,7 @@ def create_dataset(dataroot='data/shapenet', batch_size=1, shuffle=False):
     TODO
     '''
     args = f'--dataroot {dataroot} --class_choice plane'
-    opt = TestOptions.parse(args)
+    opt = TestOptions().parse(args)
 
     opt.split = 'test'
     opt.num_threads = 0
