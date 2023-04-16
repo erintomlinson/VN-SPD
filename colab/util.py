@@ -42,17 +42,13 @@ def install_pytorch_3d_from_prebuilt_wheel_if_needed():
     if fb_has_wheel or srg_has_wheel:
         print("Found a wheel. First, install some pytorch3d dependencies (fvcore, iopath) that aren't included in pre-built wheel:")
         subprocess.call([sys.executable, '-m', 'pip', 'install', '--quiet', 'fvcore', 'iopath'])
-#        ! pip install --quiet fvcore iopath  # type: ignore
 
     if fb_has_wheel:
         print("Found FB AI wheel, installing…")
         subprocess.call([sys.executable, '-m', 'pip', 'install', '--no-index', '--no-cache-dir', 'pytorch3d', '-f', fbai_wheel_url])
-#        ! pip install --no-index --no-cache-dir pytorch3d -f {fbai_wheel_url}  # type: ignore
     elif srg_has_wheel:
         print("Found only SRG wheel, installing...")
         subprocess.call(f'curl -L {srg_wheel_url} | tar xz'.split())
         subprocess.call(f'{sys.executable} -m pip install --no-index --find-links=./wheeldir pytorch3d'.split())
-#        ! curl -L {srg_wheel_url} | tar xz  # type: ignore
-#        ! pip install --no-index --find-links=./wheeldir pytorch3d  # type: ignore
     else:
         raise RuntimeError("Can't find any pre-compiled pytorch3D wheel. :/")
