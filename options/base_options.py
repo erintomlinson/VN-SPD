@@ -24,6 +24,7 @@ class BaseOptions():
         parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
         parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         parser.add_argument('--model', type=str, default='cycle_gan', help='chooses which model to use. [atlas_vnt]')
+        parser.add_argument('--quiet', action='store_true', help='suppresses print statements (for colab)')
 
         # model parameters
         parser.add_argument('--rot', type=str, default='se3', help='Apply transforamtion to input point cloud')
@@ -180,7 +181,8 @@ class BaseOptions():
             suffix = ('_' + opt.suffix.format(**vars(opt))) if opt.suffix != '' else ''
             opt.name = opt.name + suffix
 
-        self.print_options(opt)
+        if not opt.quiet:
+            self.print_options(opt)
 
         # set gpu ids
         str_ids = opt.gpu_ids.split(',')
