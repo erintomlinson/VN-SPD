@@ -415,3 +415,50 @@ def to_rotation_mat(rot):
     rot_mat = torch.matmul(rot, M_TM_pow_minus_half)
 
     return rot_mat
+
+def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
+    """ Randomly convert complete point cloud to single view to augument the dataset
+        Uses Open3D "Hidden Point Removal" algorithm
+        (http://www.open3d.org/docs/release/tutorial/geometry/pointcloud.html#Hidden-point-removal)
+        Conversion is per shape with camera placed along +z axis, works with and without normals
+        Input:
+          batch_data: BxNx3 (or BxNx6) array, original batch of point clouds (and optional normals)
+          prob: per-shape probability of single-view point cloud conversion
+          camera_direction: 'random' or np.ndarray for specific direction
+        Return:
+          processed_data: BxNx3 (or BxNx6) array, processed batch of point clouds (and optional normals)
+          partialized: length B array, boolean flag for which point clouds were converted to single view
+    """
+    # Initialize processed_data as a copy of batch_data
+    batch_data = batch_data.permute(0, 2, 1).numpy()
+    processed_data = batch_data.copy()
+    batch_size = batch_data.shape[0]
+    
+    # Compute camera directions for each point cloud in batch
+    if camera_direction == 'random':
+        camera = (random_rotations(batch_size) @ np.array([0, 0, 1])).numpy()
+    else:
+        camera = np.tile(np.asarray(camera).reshape(1, -1), (batch_size, 1))
+
+    partialized = np.random.uniform(size=batch_size) < prob
+    for k in np.argwhere(partialized).ravel():
+
+        # Apply HPR operator from specified direction
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(batch_data[k, :, 0:3])
+        diameter = np.linalg.norm(np.asarray(pcd.get_max_bound()) - np.asarray(pcd.get_min_bound()))
+        _, pt_map = pcd.hidden_point_removal(camera[k] * diameter, diameter * 100)
+        if o3d.__version__ == '0.9.0.0':
+            points = np.asarray(pcd.select_down_sample(pt_map).points)
+        else:
+            points = np.asarray(pcd.select_by_index(pt_map).points)
+
+        # Concatenate matching normals if they exist
+        points = np.concatenate([points, batch_data[k, pt_map, 3:6]], axis=-1)
+
+        # Place points in processed data array, padding with the first point
+        processed_data[k, :len(pt_map), :] = points
+        processed_data[k, len(pt_map):, :] = points[0]
+
+    processed_data = torch.from_numpy(processed_data).permute(0, 2, 1)
+    return processed_data, partialized

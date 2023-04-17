@@ -31,7 +31,7 @@ def create_model(name, opt):
     opt.name = name
     model = _create_model(opt)
     model.setup(opt)
-    mode.eval()
+    model.eval()
     return model
 
 
