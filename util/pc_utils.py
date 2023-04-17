@@ -438,7 +438,7 @@ def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
     if camera_direction == 'random':
         camera = (random_rotations(batch_size) @ np.array([0, 0, 1])).numpy()
     else:
-        camera = np.tile(np.asarray(camera).reshape(1, -1), (batch_size, 1))
+        camera = np.tile(np.asarray(camera_direction).reshape(1, -1), (batch_size, 1))
 
     partialized = np.random.uniform(size=batch_size) < prob
     for k in np.argwhere(partialized).ravel():
