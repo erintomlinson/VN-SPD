@@ -17,11 +17,12 @@ def create_dataset(model='shape_pose', batch_size=1, shuffle=False, quiet=True):
     if quiet: args += ' --quiet'
     opt = TestOptions().parse(args.split())
 
-    opt.split = 'test'
+    opt.split = 'demo'
     opt.num_threads = 0
     opt.batch_size = batch_size
     opt.serial_batches = not(shuffle)
     dataset = _create_dataset(opt)
+    opt.split = 'test'
     return dataset, opt
 
 def create_model(name, opt):
