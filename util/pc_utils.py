@@ -436,9 +436,15 @@ def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
     
     # Compute camera directions for each point cloud in batch
     if camera_direction == 'random':
-        camera = (random_rotations(batch_size) @ np.array([0, 0, 1])).numpy()
-    else:
-        camera = np.tile(np.asarray(camera_direction).reshape(1, -1), (batch_size, 1))
+        camera_direction = (random_rotations(batch_size) @ np.array([0, 0, 1])).numpy()
+    elif isinstance(camera_direction, (list, np.ndarray)):
+        camera_direction = np.asarray(camera_direction, dtype=float).reshape(-1, 3)
+        if len(camera_direction) == 1:
+            camera_direction = np.tile(camera_direction, (batch_size, 1))
+        elif len(camera_direction) != batch_size:
+            raise ValueError('number of camera directions must equal 1 or batch_size')
+    camera_direction /= np.linalg.norm(camera_direction, axis=1, keepdims=True)
+    
 
     partialized = np.random.uniform(size=batch_size) < prob
     for k in np.argwhere(partialized).ravel():
@@ -447,7 +453,7 @@ def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(batch_data[k, :, 0:3])
         diameter = np.linalg.norm(np.asarray(pcd.get_max_bound()) - np.asarray(pcd.get_min_bound()))
-        _, pt_map = pcd.hidden_point_removal(camera[k] * diameter, diameter * 100)
+        _, pt_map = pcd.hidden_point_removal(camera_direction[k] * diameter, diameter * 100)
         if o3d.__version__ == '0.9.0.0':
             points = np.asarray(pcd.select_down_sample(pt_map).points)
         else:
@@ -461,4 +467,5 @@ def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
         processed_data[k, len(pt_map):, :] = points[0]
 
     processed_data = torch.from_numpy(processed_data).permute(0, 2, 1)
-    return processed_data, partialized
+    info = dict(camera_direction=camera_direction, partialized=partialized)
+    return processed_data, info
