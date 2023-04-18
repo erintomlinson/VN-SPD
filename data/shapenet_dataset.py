@@ -36,6 +36,9 @@ class ShapenetDataset(BaseDataset):
 
         # get h5path
         opt.phase = 'valid' if opt.phase == 'test' else opt.phase
+        if opt.demo:
+            _opt_phase = opt.phase
+            opt.phase = 'demo'
         fn_cat = os.path.join(data_dump_folder, f"{opt.phase}_cat.txt")
         #fn_cat = os.path.join(data_dump_folder, f"cat.txt")
         h5path = [line.rstrip() for line in list(open(fn_cat, "r"))]
@@ -51,6 +54,8 @@ class ShapenetDataset(BaseDataset):
         self.h5path = [
             os.path.join(data_dump_folder, opt.phase, h5path_) for h5path_ in h5path]
         self.dataset = [h5py.File(path, "r") for path in self.h5path]
+        if opt.demo:
+            opt.phase = _opt_phase
 
         # get len and cumsum
         lens = [len(d["pcd"]["point"]) for d in self.dataset]
