@@ -108,6 +108,13 @@ class BaseOptions():
         parser.add_argument('--weight_sample_T', type=float, default=0.1, help='Reample weight for translation branch')
         parser.add_argument('--weight_sample_R', type=float, default=0.1, help='Reample weight for rotation branch')
 
+        # Partialization augmentation:
+        parser.add_argument('--partialize', action='store_true', help='Apply partialization augmentation')
+        parser.add_argument('--weight_partial_T', type=float, default=0.1, help='Partial weight for translation branch')
+        parser.add_argument('--weight_partial_R', type=float, default=0.1, help='Partial weight for rotation branch')
+        parser.add_argument('--weight_partial_inv_z', type=float, default=0.1, help='Partial weight for shape branch')
+        parser.add_argument('--freeze_decoder', action='store_true', help='Freeze decoder weights')
+
         # Can rot loss:
         parser.add_argument('--apply_can_rot_loss', type=int, default=1, help='Use can shape as augmentation')
         parser.add_argument('--weight_can_T', type=float, default=0.1,

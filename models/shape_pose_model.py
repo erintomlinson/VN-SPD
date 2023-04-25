@@ -38,6 +38,11 @@ class ShapePoseModel(BaseModel):
             visual_names += ['pc_fps_show', 'pc_fps_at_inv_show']
             self.loss_names += ["fps_rot", "fps_T"]
 
+        if self.opt.partialize:
+            self.loss_names += ['partial_rot', 'partial_T', 'partial_inv_z']
+            visual_names += ['pc_partial_show', 'recon_pc_partial_show', 'pc_partial_at_inv_show', 'recon_pc_partial_inv_show']
+
+
         self.visual_names += [visual_names]
         self.model_names = ['Encoder', 'Decoder', 'Rotation']
 
@@ -100,6 +105,12 @@ class ShapePoseModel(BaseModel):
                 _, new_pc = pc_utils.farthest_point_sample_xyz(pc.transpose(1,2), num_fps_points)
                 self.pc_fps = new_pc.transpose(1,2).detach()
 
+            if self.opt.partialize:
+                # Q: do I need to have the same number of points after partialization? It doesn't look like remove_knn does this.
+                pc = self.pc.clone().detach().cpu()
+                pc_partial, info = pc_utils.partialize_point_cloud(pc, prob=1.0, camera_direction='random')
+                self.pc_partial = pc_partial.to(self.device)
+
         return self.pc, trot
 
     #TODO: move to geom_utils
@@ -146,6 +157,7 @@ class ShapePoseModel(BaseModel):
         inv_z, self.eq_z, self.t_vec = self.netEncoder(self.pc)
         decoded_pc_inv, self.patches = self.netDecoder(inv_z)
         self.rot_mat = self.netRotation(self.eq_z)
+        self.inv_z = inv_z # EMT: why wasn't this here before?
 
         self.recon_pc = (torch.matmul(decoded_pc_inv, self.rot_mat) + self.t_vec).permute(0,2,1)
         self.pc_at_inv = torch.matmul(self.pc.permute(0, 2, 1) -  self.t_vec, self.rot_mat.transpose(1,2)).permute(0,2,1)
@@ -176,6 +188,11 @@ class ShapePoseModel(BaseModel):
             sample_inv_z, sample_eq_z, self.t_sample_vec = self.netEncoder(self.pc_sample)
             self.sample_rot_mat = self.netRotation(sample_eq_z)
 
+        if self.opt.partialize:
+            self.partial_inv_z, partial_eq_z, self.t_partial_vec = self.netEncoder(self.pc_partial)
+            self.partial_rot_mat = self.netRotation(partial_eq_z)
+
+
         #  Visualization - validating equivariance by definition
         with torch.no_grad():
             self.pc_rotated, trot_ = pc_utils.rotate(self.pc, self.opt.rot, self.device, t=self.opt.se3_T, return_trot=True)
@@ -184,6 +201,13 @@ class ShapePoseModel(BaseModel):
 
             self.decoded_rotated_pc_inv, patches = self.netDecoder(rotated_inv_z)
             self.pc_rotated_at_inv = torch.matmul(self.pc_rotated.permute(0, 2, 1) - t_vec, rot_mat_.transpose(1, 2)).permute(0, 2, 1)
+
+            # Purely for visualization
+            if self.opt.partialize:
+                decoded_pc_partial_inv, partial_patches = self.netDecoder(self.partial_inv_z)
+                self.recon_pc_partial = (torch.matmul(decoded_pc_partial_inv, self.partial_rot_mat) + self.t_partial_vec).permute(0,2,1)
+                self.pc_partial_at_inv = torch.matmul(self.pc_partial.permute(0, 2, 1) -  self.t_partial_vec, self.partial_rot_mat.transpose(1,2)).permute(0,2,1)
+                self.recon_pc_partial_inv = decoded_pc_partial_inv.permute(0, 2, 1)
 
     def cal_recon_loss(self):
         self.loss_recon_1 = self.criterionPCRecon(self.recon_pc.permute(0, 2, 1), self.pc.permute(0, 2, 1))[0] * self.opt.weight_recon1
@@ -233,6 +257,14 @@ class ShapePoseModel(BaseModel):
             losses += [self.loss_sample_rot, self.loss_sample_T]
             if self.opt.add_ortho_aug:
                 self.loss_ortho += self.criterionOrtho(self.sample_rot_mat)
+
+        if self.opt.partialize:
+            self.loss_partial_rot = self.cal_rot_dist(self.partial_rot_mat, self.rot_mat, self.opt.detach_aug_loss) * self.opt.weight_partial_R
+            self.loss_partial_T = self.cal_trans_dist(self.t_partial_vec, self.t_vec, self.opt.detach_aug_loss) * self.opt.weight_partial_T
+            self.loss_partial_inv_z = self.criterionMSE(self.partial_inv_z, self.inv_z) * self.opt.weight_partial_inv_z
+            losses += [self.loss_partial_rot, self.loss_partial_T, self.loss_partial_inv_z]
+            if self.opt.add_ortho_aug:
+                self.loss_ortho += self.criterionOrtho(self.partial_rot_mat)
 
         if self.opt.apply_can_rot_loss:
             rotated_recon, trot = pc_utils.rotate(self.recon_pc_inv, "so3", self.device, return_trot=True)
@@ -322,6 +354,12 @@ class ShapePoseModel(BaseModel):
 
             if self.opt.resample:
                 self.pc_sample_show = self.add_color(self.pc_sample)
+
+            if self.opt.partialize:
+                self.pc_partial_show = self.add_color(self.pc_partial)
+                self.recon_pc_partial_show = self.add_color(self.recon_pc_partial)
+                self.pc_partial_at_inv_show = self.add_color(self.pc_partial_at_inv)
+                self.recon_pc_partial_inv_show = self.add_color(self.recon_pc_partial_inv)
 
             self.pc_rotated_show = self.add_color(self.pc_rotated)
             self.pc_rotated_at_inv_show = self.add_color(self.pc_rotated_at_inv)
