@@ -28,6 +28,7 @@ def create_dataset(model='shape_pose', batch_size=1, shuffle=False):
     opt.batch_size = batch_size
     opt.serial_batches = not(shuffle)
     opt.remove_knn = 0
+    opt.no_input_resample = 0
     dataset = _create_dataset(opt)
     return dataset, opt
 
