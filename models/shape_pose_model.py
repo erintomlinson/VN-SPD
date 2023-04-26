@@ -19,28 +19,30 @@ class ShapePoseModel(BaseModel):
         self.loss_placeholder = 0
         self.loss_names = ['recon_1', 'recon_2', 'ortho', 'can_rot']
 
+#        visual_names = ['pc_show', 'pc_at_inv_show', 'recon_pc_inv_show', 'recon_pc_inv_color_show',
+#                        'recon_pc_show', 'pc_rotated_show', 'pc_rotated_at_inv_show', 'recon_rotated_inv_show']
         visual_names = ['pc_show', 'pc_at_inv_show', 'recon_pc_inv_show', 'recon_pc_inv_color_show',
-                        'recon_pc_show', 'pc_rotated_show', 'pc_rotated_at_inv_show', 'recon_rotated_inv_show']
+                        'recon_pc_show'] 
 
         if self.opt.add_noise:
-            visual_names += ['noised_pc_show', 'noised_pc_at_inv_show']
+#            visual_names += ['noised_pc_show', 'noised_pc_at_inv_show']
             self.loss_names += ["noised_rot", "noised_T"]
 
         if self.opt.remove_knn > 0:
             self.loss_names += ['part_rot', 'part_T']
-            visual_names += ['pc_part_show']
+#            visual_names += ['pc_part_show']
 
         if self.opt.resample:
             self.loss_names += ['sample']
-            visual_names += ['pc_sample_show']
+#            visual_names += ['pc_sample_show']
 
         if self.opt.fps:
-            visual_names += ['pc_fps_show', 'pc_fps_at_inv_show']
+#            visual_names += ['pc_fps_show', 'pc_fps_at_inv_show']
             self.loss_names += ["fps_rot", "fps_T"]
 
         if self.opt.partialize:
             self.loss_names += ['partial_rot', 'partial_T', 'partial_inv_z']
-            visual_names += ['pc_partial_show', 'recon_pc_partial_show', 'pc_partial_at_inv_show', 'recon_pc_partial_inv_show']
+            visual_names += ['pc_partial_show', 'recon_pc_partial_show', 'pc_partial_at_inv_show', 'recon_pc_partial_inv_show', 'recon_pc_partial_inv_color_show']
 
 
         self.visual_names += [visual_names]
@@ -107,6 +109,7 @@ class ShapePoseModel(BaseModel):
 
             if self.opt.partialize:
                 # Q: do I need to have the same number of points after partialization? It doesn't look like remove_knn does this.
+                # A: remove_knn does not, but unfortunately I do because I remove a variable number of points for each target
                 pc = self.pc.clone().detach().cpu()
                 pc_partial, info = pc_utils.partialize_point_cloud(pc, prob=1.0, camera_direction='random')
                 self.pc_partial = pc_partial.to(self.device)
@@ -115,7 +118,7 @@ class ShapePoseModel(BaseModel):
 
     #TODO: move to geom_utils
     def to_rotation_mat(self):
-        pc_utils.to_rotation_mat(self.rot_mat, self.opt.which_rot)
+        pc_utils.to_rotation_mat(self.rot_mat, self.opt.which_strict_rot)
 
     def cal_rot_dist(self, R1, R2, detach_R2=False):
         if detach_R2:
@@ -360,6 +363,7 @@ class ShapePoseModel(BaseModel):
                 self.recon_pc_partial_show = self.add_color(self.recon_pc_partial)
                 self.pc_partial_at_inv_show = self.add_color(self.pc_partial_at_inv)
                 self.recon_pc_partial_inv_show = self.add_color(self.recon_pc_partial_inv)
+                self.recon_pc_partial_inv_color_show = self.add_color(self.recon_pc_partial_inv, self.decoder_color)
 
             self.pc_rotated_show = self.add_color(self.pc_rotated)
             self.pc_rotated_at_inv_show = self.add_color(self.pc_rotated_at_inv)

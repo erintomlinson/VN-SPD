@@ -22,7 +22,7 @@ class TestOptions(BaseOptions):
         # rewrite devalue values
         parser.set_defaults(model='test')
         parser.set_defaults(no_input_resample=1)
-        parser.set_defaults(which_strict_mode='svd')
+        parser.set_defaults(which_strict_rot='svd')
 
 
         # To avoid cropping, the load_size should be the same as crop_size

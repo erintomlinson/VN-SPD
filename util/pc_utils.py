@@ -353,7 +353,7 @@ def sample(pc, num_samples, device=torch.device('cuda')):
     pc_ = pc.clone().detach()[:, :, id_to_keep].clone().contiguous()
     return pc_
 
-def to_rotation_mat(self, rot, which_rot='svd'):
+def to_rotation_mat(rot, which_rot='svd'):
     if which_rot == 'svd':
         u, s, v = torch.svd(rot)
         M_TM_pow_minus_half = torch.matmul(v / (s + EPS).unsqueeze(1), v.transpose(2, 1))
