@@ -42,37 +42,45 @@ def create_model(name, opt):
     model.eval()
     return model
 
-def show_model_outputs(data, model, use_rand_trans=False, partialize=False, height=500, width=1200, showaxis=False):
+def show_model_outputs(data, model, use_rand_trans=False, partialize=False, height=500, width=1200, showaxis=False, remove_outlier=True):
     '''
     TODO
     '''
     pcs = data[0].clone()
     batch_size = len(pcs)
-    pcs, info = pc_utils.partialize_point_cloud(pcs, prob=float(partialize), camera_direction='random')    
+    pcs, info = pc_utils.partialize_point_cloud(pcs, prob=float(partialize), camera_direction='random')
 
     model.eval()
     with torch.no_grad():
         _, trot = model.set_input((pcs, ), use_rand_trans=use_rand_trans)
         model.forward()
-    
+
+    if remove_outlier:
+        outlier = torch.tensor([1.0, -1.0, -1.0], device=model.device).view(1, 3, 1)
+        outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc_inv, outlier), dim=1).squeeze()).item()
+        model.recon_pc_inv[:, :, outlier_idx] = model.recon_pc_inv[:, :, 0]
+        transformed_outlier = (torch.matmul(outlier.permute(0, 2, 1), model.rot_mat) + model.t_vec).permute(0, 2, 1)
+        transformed_outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc, transformed_outlier), dim=1).squeeze()).item()
+        model.recon_pc[:, :, transformed_outlier_idx] = model.recon_pc[:, :, 0]
+
     subplots = {
-        'Input': model.pc, 
-        'Re-posed Input': model.pc_at_inv, 
-        'Pose-Invariant Recon.': model.recon_pc_inv, 
+        'Input': model.pc,
+        'Re-posed Input': model.pc_at_inv,
+        'Pose-Invariant Recon.': model.recon_pc_inv,
         'Input Recon.': model.recon_pc}
-    
+
     fig = make_subplots(
-        rows=batch_size, cols=len(subplots), 
-        subplot_titles=[subplot_name for _ in range(batch_size) for subplot_name in subplots.keys()], 
-        specs=[[{'type': 'scene'} for _ in range(len(subplots))] for _ in range(batch_size)], 
+        rows=batch_size, cols=len(subplots),
+        subplot_titles=[subplot_name for _ in range(batch_size) for subplot_name in subplots.keys()],
+        specs=[[{'type': 'scene'} for _ in range(len(subplots))] for _ in range(batch_size)],
         vertical_spacing=0, horizontal_spacing=0)
-    
+
     for subplot_idx, (subplot_name, subplot_data) in enumerate(subplots.items()):
         for pc_idx in range(batch_size):
             x, y, z = subplot_data[pc_idx].cpu().numpy()
             trace = go.Scatter3d(
-                x=x, y=y, z=z, 
-                mode='markers', 
+                x=x, y=y, z=z,
+                mode='markers',
                 marker=dict(size=2, opacity=0.8, color=colors[subplot_idx]))
             fig.add_trace(trace, row=pc_idx+1, col=subplot_idx+1)
 
