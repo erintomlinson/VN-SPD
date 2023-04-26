@@ -57,10 +57,10 @@ def main(opt):
             pc_at_canonic = out[0]
             rot_mat, t_vec = out[1]
 
-            rot_mats.append(pc_utils.to_rotation_mat(rot_mat.detach()))
+            rot_mats.append(pc_utils.to_rotation_mat(rot_mat.detach(), opt.which_strict_rot))
 
         rot_mats = torch.cat(rot_mats, dim=0)
-        rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(rot_mats, dim=0, keepdim=True))
+        rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(rot_mats, dim=0, keepdim=True), opt.which_strict_rot)
         dists = pc_utils.cal_angular_metric(rot_mats, rot_mat_mean)
 
         consistent_array.append(torch.sqrt(torch.mean(dists ** 2)).item())
@@ -87,10 +87,10 @@ def main(opt):
                 pc_at_canonic = out[0]
                 rot_mat, t_vec = out[1]
 
-                rot_mats.append(torch.matmul(pc_utils.to_rotation_mat(rot_mat.detach()), input_rot.transpose(1,2)))
+                rot_mats.append(torch.matmul(pc_utils.to_rotation_mat(rot_mat.detach(), opt.which_strict_rot), input_rot.transpose(1,2)))
 
             rot_mats = torch.cat(rot_mats, dim=0)
-            rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(rot_mats, dim=0, keepdim=True))
+            rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(rot_mats, dim=0, keepdim=True), opt.which_strict_rot)
             dists = pc_utils.cal_angular_metric(rot_mats, rot_mat_mean)
             obj_stability = torch.sqrt(torch.mean(dists ** 2)).item()
             stab_arr.append(obj_stability)
