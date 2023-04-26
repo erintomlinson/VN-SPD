@@ -409,12 +409,12 @@ def cal_angular_metric(R1, R2):
     dist = (180 / np.pi) * dist
     return dist
 
-def to_rotation_mat(rot):
-    u, s, v = torch.svd(rot)
-    M_TM_pow_minus_half = torch.matmul(v / (s + EPS).unsqueeze(1), v.transpose(2, 1))
-    rot_mat = torch.matmul(rot, M_TM_pow_minus_half)
-
-    return rot_mat
+#def to_rotation_mat(rot):
+#    u, s, v = torch.svd(rot)
+#    M_TM_pow_minus_half = torch.matmul(v / (s + EPS).unsqueeze(1), v.transpose(2, 1))
+#    rot_mat = torch.matmul(rot, M_TM_pow_minus_half)
+#
+#    return rot_mat
 
 def partialize_point_cloud(batch_data, prob=0.5, camera_direction='random'):
     """ Randomly convert complete point cloud to single view to augument the dataset
