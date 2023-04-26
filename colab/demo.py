@@ -57,10 +57,10 @@ def show_model_outputs(data, model, use_rand_trans=False, partialize=False, heig
 
     if remove_outlier:
         outlier = torch.tensor([1.0, -1.0, -1.0], device=model.device).view(1, 3, 1)
-        outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc_inv, outlier), dim=1).squeeze()).item()
+        outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc_inv, outlier, atol=1e-2), dim=1).squeeze()).item()
         model.recon_pc_inv[:, :, outlier_idx] = model.recon_pc_inv[:, :, 0]
         transformed_outlier = (torch.matmul(outlier.permute(0, 2, 1), model.rot_mat) + model.t_vec).permute(0, 2, 1)
-        transformed_outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc, transformed_outlier), dim=1).squeeze()).item()
+        transformed_outlier_idx = torch.argwhere(torch.all(torch.isclose(model.recon_pc, transformed_outlier, atol=1e-2), dim=1).squeeze()).item()
         model.recon_pc[:, :, transformed_outlier_idx] = model.recon_pc[:, :, 0]
 
     subplots = {
