@@ -88,6 +88,13 @@ def show_model_outputs(data, model, use_rand_trans=False, partialize=False, heig
     fig.update_scenes(aspectmode='data', xaxis=dict(visible=showaxis), yaxis=dict(visible=showaxis), zaxis=dict(visible=showaxis))
     fig.show()
 
+def get_pc(dataset, idx):
+    '''
+    TODO
+    '''
+    pc, label = dataset.dataset[idx]
+    return (torch.tensor(pc)[None], torch.tensor([label]))
+
 def show_pc(data, idx=0):
     '''
     TODO
