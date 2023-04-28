@@ -240,8 +240,6 @@ def rotate(points, rot, device=torch.device('cpu'), return_trot=False, t=0.1, un
     if trot is not None:
         points = trot.transform_points(points.transpose(1, 2)).transpose(1, 2)
 
-
-
     if return_trot:
         return points, trot
     else:

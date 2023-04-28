@@ -17,6 +17,7 @@ class TestOptions(BaseOptions):
         parser.add_argument('--num_test', type=int, default=2000, help='how many test point cloud to run')
 
         parser.add_argument('--num_stability_exp', type=int, default=10, help='Number of orientation per instance')
+        parser.add_argument('--num_partial_exp', type=int, default=10, help='Number of partial views per orientation per instance')
         parser.add_argument('--transform_path', type=str, default='', help='Pre-saved transformation, if not given, apply random')
 
         # rewrite devalue values
