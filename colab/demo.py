@@ -2,9 +2,11 @@ import os
 import sys
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import util.pc_utils as pc_utils
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import util.pc_utils as pc_utils
 import plotly.express as px
 colors = px.colors.qualitative.Vivid
 
@@ -148,3 +150,36 @@ def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, widt
     fig.update_scenes(xaxis=dict(visible=showaxis), yaxis=dict(visible=showaxis), zaxis=dict(visible=showaxis))
     fig.update_layout(height=height, width=width, showlegend=False)
     fig.show()
+
+def read_train_log(log_file):
+    '''
+    TODO
+    '''
+    train_log = []
+    with open(log_file) as f:
+        for line in f.readlines():
+            if 'epoch' not in line:
+                continue
+            entry = {k: float(v) for k, v in re.findall('([0-9A-Za-z_]+): ([\.0-9eE+-]+)', line)}
+            train_log.append(entry)
+
+    return pd.DataFrame(train_log)
+
+def plot_train_log(log_file, losses=None, figsize=None, ylim=None):
+    '''
+    TODO
+    '''
+    fig, ax = plt.subplots(figsize=figsize)
+    train_log = read_train_log(log_file)
+    train_log = train_log.groupby('epoch').mean()
+    train_log = train_log.drop(['iters', 'time', 'data'])
+    if losses is not None:
+        train_log[losses].plot(ax=ax)
+    else:
+        train_log.plot(ax=ax)
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Loss')
+    ax.set_yscale('log')
+    ax.set_ylim(ylim)
+    ax.set_title(log_file.split('/')[-2])
+    ax.grid(alpha=0.3)
