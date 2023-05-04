@@ -238,7 +238,6 @@ def main(opt):
 
                         partial_full_t_dists.append(torch.norm(t_vec - partial_t_vec, dim=-1))
 
-                
                 partial_rot_mats = torch.cat(partial_rot_mats, dim=0)
                 partial_rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(partial_rot_mats, dim=0, keepdim=True), opt.which_strict_rot)
                 rot_dists = pc_utils.cal_angular_metric(partial_rot_mats, partial_rot_mat_mean)
@@ -256,10 +255,10 @@ def main(opt):
                 partial_full_t_dists = torch.cat(partial_full_t_dists, dim=0)
                 partial_full_t_dist_arr.append(torch.mean(partial_full_t_dists).item())
 
-                partial_recon_losses = torch.cat(partial_recon_losses, dim=0)
+                partial_recon_losses = torch.stack(partial_recon_losses, dim=0)
                 partial_recon_loss_arr.append(torch.mean(partial_recon_losses).item())
 
-                partial_full_recon_loss_ratios = torch.cat(partial_full_recon_loss_ratios, dim=0)
+                partial_full_recon_loss_ratios = torch.stack(partial_full_recon_loss_ratios, dim=0)
                 partial_full_recon_loss_ratio_arr.append(torch.mean(partial_full_recon_loss_ratios).item())
             
             print('')
