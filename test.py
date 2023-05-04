@@ -177,6 +177,8 @@ def main(opt):
             t_stab_arr = []
             partial_full_rot_dist_arr = []
             partial_full_t_dist_arr = []
+            partial_recon_loss_arr = []
+            partial_full_recon_loss_ratio_arr = []
             for i, data in enumerate(tqdm(dataset, total=round(float(len(dataset))/opt.batch_size))):
                 if (i *  opt.batch_size) > opt.num_test:
                     break
@@ -185,6 +187,8 @@ def main(opt):
                 partial_t_vecs = []
                 partial_full_rot_dists = []
                 partial_full_t_dists = []
+                partial_recon_losses = []
+                partial_full_recon_loss_ratios = []
                 for j in range(num_stability_exp):
 
                     if not presaved_trans is None:
@@ -196,10 +200,15 @@ def main(opt):
                         input_rot = trot.get_matrix()[:,:3,:3]
                         input_t_vec = trot.get_matrix()[:,:3, 3].view(-1, 3)
 
-                    out = model.test()  # run inference
-                    pc_at_canonic = out[0]
-                    rot_mat, t_vec = out[1]
+                    # run inference manually on pc
+                    inv_z, eq_z, t_vec = model.netEncoder(in_points)
+                    rot_mat = model.netRotation(eq_z)
+                    decoded_pc_inv, _ = model.netDecoder(inv_z)
+                    recon_pc = (torch.matmul(decoded_pc_inv, rot_mat) + t_vec).permute(0,2,1)
                     t_vec = t_vec.detach().view(-1, 3)
+
+                    # compute the reconstruction loss for the full pc
+                    full_recon_loss = chamfer_distance(recon_pc.permute(0, 2, 1), in_points.permute(0, 2, 1))[0]
 
                     for k in range(num_partial_exp):
 
@@ -208,10 +217,16 @@ def main(opt):
                         partial_pc = partial_pc.cuda()
 
                         # run inference manually on partial_pc
-                        inv_z, eq_z, partial_t_vec = model.netEncoder(partial_pc)
-                        partial_rot_mat = model.netRotation(eq_z)
-                        partial_pc_at_canonic = torch.matmul(partial_pc.permute(0, 2, 1) - partial_t_vec, partial_rot_mat.transpose(1, 2)).permute(0, 2, 1)
+                        partial_inv_z, partial_eq_z, partial_t_vec = model.netEncoder(partial_pc)
+                        partial_rot_mat = model.netRotation(partial_eq_z)
+                        decoded_partial_pc_inv, _ = model.netDecoder(partial_inv_z)
+                        recon_partial_pc = (torch.matmul(decoded_partial_pc_inv, partial_rot_mat) + partial_t_vec).permute(0,2,1)
                         partial_t_vec = partial_t_vec.detach().view(-1, 3)
+
+                        # compute the reconstruction loss for the partial pc
+                        partial_recon_loss = chamfer_distance(recon_partial_pc.permute(0, 2, 1), in_points.permute(0, 2, 1))[0]
+                        partial_recon_losses.append(partial_recon_loss)
+                        partial_full_recon_loss_ratios.append(partial_recon_loss/full_recon_loss)
 
                         partial_rot_mats.append(torch.matmul(pc_utils.to_rotation_mat(partial_rot_mat.detach(), opt.which_strict_rot), input_rot.transpose(1,2)))
                         partial_t_vecs.append(input_t_vec - partial_t_vec)
@@ -223,7 +238,7 @@ def main(opt):
 
                         partial_full_t_dists.append(torch.norm(t_vec - partial_t_vec, dim=-1))
 
-
+                
                 partial_rot_mats = torch.cat(partial_rot_mats, dim=0)
                 partial_rot_mat_mean = pc_utils.to_rotation_mat(torch.mean(partial_rot_mats, dim=0, keepdim=True), opt.which_strict_rot)
                 rot_dists = pc_utils.cal_angular_metric(partial_rot_mats, partial_rot_mat_mean)
@@ -240,6 +255,12 @@ def main(opt):
 
                 partial_full_t_dists = torch.cat(partial_full_t_dists, dim=0)
                 partial_full_t_dist_arr.append(torch.mean(partial_full_t_dists).item())
+
+                partial_recon_losses = torch.cat(partial_recon_losses, dim=0)
+                partial_recon_loss_arr.append(torch.mean(partial_recon_losses).item())
+
+                partial_full_recon_loss_ratios = torch.cat(partial_full_recon_loss_ratios, dim=0)
+                partial_full_recon_loss_ratio_arr.append(torch.mean(partial_full_recon_loss_ratios).item())
             
             print('')
             print("Partial PC Rotation Stability: ", np.mean(rot_stab_arr))
@@ -247,12 +268,21 @@ def main(opt):
             print('')
             print("Avg Distance Between Partial and Full PC Pose: ", np.mean(partial_full_rot_dist_arr))
             print("Avg Distance Between Partial and Full PC Origin: ", np.mean(partial_full_t_dist_arr))
+            print('')
+            print('Avg Partial Recon Loss: ', np.mean(partial_recon_loss_arr))
+            print('Avg Partial/Full Recon Loss Ratio: ', np.mean(partial_full_recon_loss_ratio_arr))
 
             log_file = os.path.join(opt.checkpoints_dir, opt.name, 'partial_full_rot_dists.txt')
             np.savetxt(log_file, np.array(partial_full_rot_dist_arr))
 
             log_file = os.path.join(opt.checkpoints_dir, opt.name, 'partial_full_t_dists.txt')
             np.savetxt(log_file, np.array(partial_full_t_dist_arr))
+
+            log_file = os.path.join(opt.checkpoints_dir, opt.name, 'partial_recon_losses.txt')
+            np.savetxt(log_file, np.array(partial_recon_loss_arr))
+
+            log_file = os.path.join(opt.checkpoints_dir, opt.name, 'partial_full_recon_loss_ratios.txt')
+            np.savetxt(log_file, np.array(partial_full_recon_loss_ratio_arr))
             
 
 if __name__ == '__main__':
