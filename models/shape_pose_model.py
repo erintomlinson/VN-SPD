@@ -33,7 +33,7 @@ class ShapePoseModel(BaseModel):
 #            visual_names += ['pc_part_show']
 
         if self.opt.resample:
-            self.loss_names += ['sample']
+            self.loss_names += ['sample_rot', 'sample_T']
 #            visual_names += ['pc_sample_show']
 
         if self.opt.fps:
