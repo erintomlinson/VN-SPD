@@ -173,7 +173,7 @@ def plot_train_log(log_file, losses=None, figsize=None, ylim=None):
     fig, ax = plt.subplots(figsize=figsize)
     train_log = read_train_log(log_file)
     train_log = train_log.groupby('epoch').mean()
-    train_log = train_log.drop(['iters', 'time', 'data'])
+    train_log = train_log.drop(columns=['iters', 'time', 'data'])
     if losses is not None:
         train_log[losses].plot(ax=ax)
     else:
