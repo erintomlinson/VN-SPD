@@ -257,7 +257,7 @@ def compare_model_metrics(model_names, xaxis):
     metrics = pd.concat(metrics)
     metrics = metrics.reset_index(drop=True)
     metrics['partial_recon_losses'] = metrics['partial_recon_losses'] * 1000
-    metrics['full_recon_losses'] = metrics['partial_recon_losses'] * metrics['partial_full_recon_loss_ratios']
+    metrics['full_recon_losses'] = metrics['partial_recon_losses'] / metrics['partial_full_recon_loss_ratios']
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 3))
     fig.subplots_adjust(wspace=0.25)
