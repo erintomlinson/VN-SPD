@@ -190,7 +190,7 @@ def plot_train_log(model_name, losses=None, figsize=None, ylim=None):
     ax.set_ylabel('Loss')
     ax.set_yscale('log')
     ax.set_ylim(ylim)
-    ax.set_title(log_file.split('/')[-2])
+    ax.set_title(model_name)
     ax.grid(alpha=0.3)
 
 
