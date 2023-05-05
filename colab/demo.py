@@ -214,9 +214,9 @@ def plot_model_metrics(model_name, bins=25):
     '''
     metrics = read_model_metrics(model_name)
     
-    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)'},
-                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)'},
-                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD'}}
+    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180]},
+                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180]},
+                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD', 'xlim': [0, 50]}}
 
     colors = sns.color_palette()
     fig, axes = plt.subplots(1, len(subplots), figsize=(14, 3))
@@ -226,6 +226,7 @@ def plot_model_metrics(model_name, bins=25):
         ax.axvline(np.mean(data), color=colors[1], label=f'mean: {np.mean(data):.1f}')
         ax.axvline(np.median(data), color='r', label=f'median: {np.median(data):.1f}')
         ax.set_xlabel(params['xlabel'])
+        ax.set_xlim(params['xlim'])
         ax.set_ylabel('Count')
         ax.grid(alpha=0.3)
         ax.legend(loc='upper right')
