@@ -214,16 +214,18 @@ def plot_model_metrics(model_name, bins=25):
     TODO
     '''
     metrics = read_model_metrics(model_name)
-    
+
     subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180], 'xticks': np.arange(0, 210, 30)},
                 'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180], 'xticks': np.arange(0, 210, 30)},
-                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD', 'xlim': [0, 50], 'xticks': np.arange(0, 60, 10)}}
+                'partial_recon_losses': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Chamfer Distance ($\\times 1000$)', 'xlim': [0, 120], 'xticks': np.arange(0, 150, 30)}}
 
     colors = sns.color_palette()
     fig, axes = plt.subplots(1, len(subplots), figsize=(14, 3))
     fig.subplots_adjust(wspace=0.225)
     for ax, (metric_name, params) in zip(axes.flatten(), subplots.items()):
         data = metrics[metric_name]
+        if metric_name == 'partial_recon_losses':
+            data *= 1000
         ax.hist(data, bins=bins, color=colors[0])
         ax.axvline(np.mean(data), color=colors[1], label=f'mean: {np.mean(data):.1f}')
         ax.axvline(np.median(data), color='r', label=f'median: {np.median(data):.1f}')
@@ -235,17 +237,18 @@ def plot_model_metrics(model_name, bins=25):
         ax.legend(loc='upper right')
         ax.set_title(params['title'])
 
+
 def compare_model_metrics(model_names, xaxis):
     '''
     TODO
     '''
     subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
                 'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
-                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'ylabel': 'Partial CD / Full CD', 'ylim': [0, 50]}}
+                'partial_recon_losses': {'title': 'Reconstruction Quality', 'ylabel': 'Chamfer Distance ($\\times 1000$)', 'ylim': None}}
 
     metrics = []
     for model_name in model_names:
-        metrics_ = {k: v for k, v in read_model_metrics(model_name).items() if k in subplots.keys()}
+        metrics_ = {k: v for k, v in read_model_metrics(model_name).items() if 'partial_canon' not in k}
         df = pd.DataFrame(metrics_)
         df = df.reset_index()
         df['model_name'] = model_name
@@ -253,11 +256,18 @@ def compare_model_metrics(model_names, xaxis):
     
     metrics = pd.concat(metrics)
     metrics = metrics.reset_index(drop=True)
+    metrics['partial_recon_losses'] = metrics['partial_recon_losses'] * 1000
+    metrics['full_recon_losses'] = metrics['partial_recon_losses'] * metrics['partial_full_recon_loss_ratios']
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 3))
-    fig.subplots_adjust(wspace=0.225)
+    fig.subplots_adjust(wspace=0.25)
     for ax, (metric_name, params) in zip(axes.flatten(), subplots.items()):
-        sns.lineplot(data=metrics, x='model_name', y=metric_name, ax=ax)
+        if metric_name == 'partial_recon_losses':
+            sns.lineplot(data=metrics, x='model_name', y='full_recon_losses', ax=ax, label='Full')
+            sns.lineplot(data=metrics, x='model_name', y='partial_recon_losses', ax=ax, label='Partial')
+            ax.legend(loc='lower right')
+        else:
+            sns.lineplot(data=metrics, x='model_name', y=metric_name, ax=ax)
         ax.set_ylabel(params['ylabel'])
         ax.set_xlabel(xaxis['label'])
         ax.xaxis.set_major_locator(mticker.FixedLocator(ax.get_xticks()))
