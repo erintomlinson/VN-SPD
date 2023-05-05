@@ -3,13 +3,14 @@ import re
 import sys
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from glob import glob
 import util.pc_utils as pc_utils
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import plotly.express as px
-colors = px.colors.qualitative.Vivid
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -78,6 +79,7 @@ def show_model_outputs(data, model, use_rand_trans=False, partialize=False, heig
         specs=[[{'type': 'scene'} for _ in range(len(subplots))] for _ in range(batch_size)],
         vertical_spacing=0, horizontal_spacing=0)
 
+    colors = px.colors.qualitative.Vivid
     for subplot_idx, (subplot_name, subplot_data) in enumerate(subplots.items()):
         for pc_idx in range(batch_size):
             x, y, z = subplot_data[pc_idx].cpu().numpy()
@@ -91,12 +93,14 @@ def show_model_outputs(data, model, use_rand_trans=False, partialize=False, heig
     fig.update_scenes(aspectmode='data', xaxis=dict(visible=showaxis), yaxis=dict(visible=showaxis), zaxis=dict(visible=showaxis))
     fig.show()
 
+
 def get_pc(dataset, idx):
     '''
     TODO
     '''
     pc, label = dataset.dataset[idx]
     return (torch.tensor(pc)[None], torch.tensor([label]))
+
 
 def show_pc(data, idx=0):
     '''
@@ -110,9 +114,9 @@ def show_pc(data, idx=0):
         mode='markers',
         marker=dict(size=2, opacity=1))
     ])
-    # fig.update_layout(margin=dict(r=0, l=0))
     fig.update_scenes(aspectmode='data')
     fig.show()
+
 
 def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, width=1000, showaxis=False):
     '''
@@ -126,6 +130,7 @@ def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, widt
         specs=[[{'type': 'scene'}, {'type': 'scene'}]],
         horizontal_spacing=0
     )
+    colors = px.colors.qualitative.Vivid
     fig.add_trace(go.Scatter3d(
         x=pcs[idx][0],
         y=pcs[idx][1],
@@ -152,6 +157,7 @@ def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, widt
     fig.update_layout(height=height, width=width, showlegend=False)
     fig.show()
 
+
 def read_train_log(log_file):
     '''
     TODO
@@ -165,6 +171,7 @@ def read_train_log(log_file):
             train_log.append(entry)
 
     return pd.DataFrame(train_log)
+
 
 def plot_train_log(log_file, losses=None, figsize=None, ylim=None):
     '''
@@ -184,3 +191,41 @@ def plot_train_log(log_file, losses=None, figsize=None, ylim=None):
     ax.set_ylim(ylim)
     ax.set_title(log_file.split('/')[-2])
     ax.grid(alpha=0.3)
+
+
+def read_model_metrics(model_name):
+    '''
+    TODO
+    '''
+    metric_path = os.path.join('checkpoints', model_name)
+    metric_files = [f for f in glob(os.path.join(metric_path, '*.txt')) if 'opt' not in f]
+    metrics = dict()
+    for metric_file in metric_files:
+        metric_name = metric_file.split('/')[-1][:-4]
+        metrics[metric_name] = np.loadtxt(metric_file)
+    
+    return metrics
+
+
+def plot_model_metrics(model_name, bins=25):
+    '''
+    TODO
+    '''
+    metrics = read_model_metrics(model_name)
+    
+    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)'},
+                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)'},
+                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD'}}
+
+    colors = sns.color_palette()
+    fig, axes = plt.subplots(1, len(subplots), figsize=(14, 3))
+    for ax, (metric_name, params) in zip(axes.flatten(), subplots.items()):
+        data = metrics[metric_name]
+        ax.hist(data, bins=bins, color=colors[0])
+        ax.axvline(np.mean(data), color=colors[1], label=f'mean: {np.mean(data):.1f}')
+        ax.axvline(np.median(data), color='r', label=f'median: {np.median(data):.1f}')
+        ax.set_xlabel(params['xlabel'])
+        ax.set_ylabel('Count')
+        ax.grid(alpha=0.3)
+        ax.legend(loc='upper right')
+        ax.set_title(params['title'])
