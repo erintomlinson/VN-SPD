@@ -199,7 +199,7 @@ def read_model_metrics(model_name):
     TODO
     '''
     metric_path = os.path.join('checkpoints', model_name)
-    metric_files = [f for f in glob(os.path.join(metric_path, '*.txt')) if 'opt' not in f]
+    metric_files = [f for f in glob(os.path.join(metric_path, '*.txt')) if all(s not in f for s in ['log', 'opt'])]
     metrics = dict()
     for metric_file in metric_files:
         metric_name = metric_file.split('/')[-1][:-4]
