@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from glob import glob
 import util.pc_utils as pc_utils
 import plotly.graph_objs as go
@@ -214,12 +215,13 @@ def plot_model_metrics(model_name, bins=25):
     '''
     metrics = read_model_metrics(model_name)
     
-    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180]},
-                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180]},
-                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD', 'xlim': [0, 50]}}
+    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180], 'xticks': np.arange(0, 210, 30)},
+                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'xlabel': 'Axis-Angle Distance (deg)', 'xlim': [0, 180], 'xticks': np.arange(0, 210, 30)},
+                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'xlabel': 'Partial CD / Full CD', 'xlim': [0, 50], 'xticks': np.arange(0, 60, 10)}}
 
     colors = sns.color_palette()
     fig, axes = plt.subplots(1, len(subplots), figsize=(14, 3))
+    fig.subplots_adjust(wspace=0.225)
     for ax, (metric_name, params) in zip(axes.flatten(), subplots.items()):
         data = metrics[metric_name]
         ax.hist(data, bins=bins, color=colors[0])
@@ -227,7 +229,38 @@ def plot_model_metrics(model_name, bins=25):
         ax.axvline(np.median(data), color='r', label=f'median: {np.median(data):.1f}')
         ax.set_xlabel(params['xlabel'])
         ax.set_xlim(params['xlim'])
+        ax.set_xticks(params['xticks'])
         ax.set_ylabel('Count')
         ax.grid(alpha=0.3)
         ax.legend(loc='upper right')
         ax.set_title(params['title'])
+
+def compare_model_metrics(model_names, xaxis):
+    '''
+    TODO
+    '''
+    subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
+                'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
+                'partial_full_recon_loss_ratios': {'title': 'Partial Reconstruction Quality', 'ylabel': 'Partial CD / Full CD', 'ylim': [0, 50]}}
+
+    metrics = []
+    for model_name in model_names:
+        metrics_ = {k: v for k, v in read_model_metrics(model_name).items() if k in subplots.keys()}
+        df = pd.DataFrame(metrics_)
+        df = df.reset_index()
+        df['model_name'] = model_name
+        metrics.append(df)
+    
+    metrics = pd.concat(metrics)
+    metrics = metrics.reset_index(drop=True)
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 3))
+    fig.subplots_adjust(wspace=0.225)
+    for ax, (metric_name, params) in zip(axes.flatten(), subplots.items()):
+        sns.lineplot(data=metrics, x='model_name', y=metric_name, ax=ax)
+        ax.set_ylabel(params['ylabel'])
+        ax.set_xlabel(xaxis['label'])
+        ax.xaxis.set_major_locator(mticker.FixedLocator(ax.get_xticks()))
+        ax.set_xticklabels([f'{t}' for t in xaxis['ticks']])
+        ax.set_title(params['title'])
+        ax.grid(alpha=0.3)
