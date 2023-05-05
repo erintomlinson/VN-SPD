@@ -158,10 +158,11 @@ def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, widt
     fig.show()
 
 
-def read_train_log(log_file):
+def read_train_log(model_name):
     '''
     TODO
     '''
+    log_file = os.path.join('checkpoints', model_name, 'loss_log.txt')
     train_log = []
     with open(log_file) as f:
         for line in f.readlines():
@@ -173,14 +174,14 @@ def read_train_log(log_file):
     return pd.DataFrame(train_log)
 
 
-def plot_train_log(log_file, losses=None, figsize=None, ylim=None):
+def plot_train_log(model_name, losses=None, figsize=None, ylim=None):
     '''
     TODO
     '''
-    fig, ax = plt.subplots(figsize=figsize)
-    train_log = read_train_log(log_file)
+    train_log = read_train_log(model_name)
     train_log = train_log.groupby('epoch').mean()
     train_log = train_log.drop(columns=['iters', 'time', 'data'])
+    fig, ax = plt.subplots(figsize=figsize)
     if losses is not None:
         train_log[losses].plot(ax=ax)
     else:
