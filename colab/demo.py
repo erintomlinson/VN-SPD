@@ -23,7 +23,7 @@ from options.test_options import TestOptions
 
 def create_dataset(model='shape_pose', batch_size=1, shuffle=False):
     '''
-    TODO
+    Helper routine to create demonstration dataset
     '''
     args = f'--demo --dataroot data/shapenet --class_choice plane --model {model}'
     opt = TestOptions().parse(args.split())
@@ -39,7 +39,7 @@ def create_dataset(model='shape_pose', batch_size=1, shuffle=False):
 
 def create_model(name, opt):
     '''
-    TODO
+    Helper routine to initial VN-SPD model by name
     '''
     opt.name = name
     model = _create_model(opt)
@@ -49,7 +49,7 @@ def create_model(name, opt):
 
 def show_model_outputs(data, model, use_rand_trans=False, partialize=False, height=500, width=1200, showaxis=False, remove_outlier=True):
     '''
-    TODO
+    Generates interactive visualizations of model inputs and outputs with and without partialization
     '''
     pcs = data[0].clone()
     batch_size = len(pcs)
@@ -97,7 +97,7 @@ def show_model_outputs(data, model, use_rand_trans=False, partialize=False, heig
 
 def get_pc(dataset, idx):
     '''
-    TODO
+    Helper routine to extract one pointcloud by index from the dataloader
     '''
     pc, label = dataset.dataset[idx]
     return (torch.tensor(pc)[None], torch.tensor([label]))
@@ -105,7 +105,7 @@ def get_pc(dataset, idx):
 
 def show_pc(data, idx=0):
     '''
-    TODO
+    Generates interactive visualization of one point cloud from batch by index
     '''
     pcs = data[0].cpu().numpy()
     fig = go.Figure([go.Scatter3d(
@@ -121,7 +121,7 @@ def show_pc(data, idx=0):
 
 def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, width=1000, showaxis=False):
     '''
-    TODO
+    Generates side-by-side interactive visualizations of point cloud and a randomly generated partial view
     '''
     pcs = data[0].cpu().numpy()
     partial_pcs = pc_utils.partialize_point_cloud(data[0], prob=1, camera_direction=camera_direction)[0].cpu().numpy()
@@ -161,7 +161,7 @@ def show_pc_and_partial(data, idx=0, camera_direction='random', height=500, widt
 
 def read_train_log(model_name):
     '''
-    TODO
+    Parses train log and returns dataframe with separate columns for each loss term
     '''
     log_file = os.path.join('checkpoints', model_name, 'loss_log.txt')
     train_log = []
@@ -177,7 +177,7 @@ def read_train_log(model_name):
 
 def plot_train_log(model_name, losses=None, figsize=None, ylim=None):
     '''
-    TODO
+    Plots the train log (i.e., learning curve) of the specified model
     '''
     train_log = read_train_log(model_name)
     train_log = train_log.groupby('epoch').mean()
@@ -197,7 +197,7 @@ def plot_train_log(model_name, losses=None, figsize=None, ylim=None):
 
 def read_model_metrics(model_name):
     '''
-    TODO
+    Reads in pre-computed model evaluation metrics by model name
     '''
     metric_path = os.path.join('checkpoints', model_name)
     metric_files = [f for f in glob(os.path.join(metric_path, '*.txt')) if all(s not in f for s in ['log', 'opt'])]
@@ -211,7 +211,7 @@ def read_model_metrics(model_name):
 
 def plot_model_metrics(model_name, bins=25):
     '''
-    TODO
+    Plots model metrics for the specified model
     '''
     metrics = read_model_metrics(model_name)
 
@@ -240,7 +240,7 @@ def plot_model_metrics(model_name, bins=25):
 
 def compare_model_metrics(model_names, xaxis):
     '''
-    TODO
+    Generates plots comparing metrics across models using the specific xaxis parameters
     '''
     subplots = {'full_canon_rot_dists': {'title': 'Full/Canonical Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
                 'partial_full_rot_dists': {'title': 'Full/Partial Pose Consistency', 'ylabel': 'Axis-Angle Distance (deg)', 'ylim': [0, 180]},
